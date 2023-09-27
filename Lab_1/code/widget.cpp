@@ -1,7 +1,7 @@
 #include "widget.h"
-#include "QtWidgets/qapplication.h"
-#include "QtGui/qguiapplication.h"
-#include "QtCore/qcoreapplication.h"
+//#include "QtWidgets/qapplication.h"
+//#include "QtGui/qguiapplication.h"
+//#include "QtCore/qcoreapplication.h"
 
 
 Widget::Widget(QWidget *parent)
@@ -9,13 +9,16 @@ Widget::Widget(QWidget *parent)
 {
 
     resize(400,400);
+    setMaximumSize(400,400);
 
     color_converter = new QColor();
     space_id = space_name::rgb;
     spaces = {space_name::rgb, space_name::cmyk, space_name::hsv, space_name::hls, space_name::xyz};
 
 
-    GradientLabel = new QLabel(this);
+    ColorDialog = new QPushButton(this);
+    //ColorDialog->setSizePolicy(QSizePolicy::Expanding);
+    ColorDialog->setText("Choose color");
 
     backgr= new QGridLayout;
     backgr->setAlignment(Qt::AlignLeft);
@@ -83,20 +86,25 @@ Widget::Widget(QWidget *parent)
     connect(Left2, SIGNAL(valueChanged(int)), this, SLOT(spinsChanged(int)));
     connect(Left3, SIGNAL(valueChanged(int)), this, SLOT(spinsChanged(int)));
 
-    /*************************Other spinboxes are read-only*********************************/
+    /*******!CORRECTING!*****Other spinboxes are read-only*********************************/
     Mid1 = new QSpinBox;
     Mid2 = new QSpinBox;
     Mid3 = new QSpinBox;
     Mid4 = new QSpinBox;
     Mid1->setMinimumSize(200,20);
 
-    Mid1->setReadOnly(true);
-    Mid2->setReadOnly(true);
-    Mid3->setReadOnly(true);
+    //Mid1->setReadOnly(true);
+    //Mid2->setReadOnly(true);
+    //Mid3->setReadOnly(true);
 
     Mid1->setRange(0, 255);
     Mid2->setRange(0, 255);
     Mid3->setRange(0, 255);
+
+    connect(Mid1, SIGNAL(valueChanged(int)), this, SLOT(spinsChanged(int)));
+    connect(Mid2, SIGNAL(valueChanged(int)), this, SLOT(spinsChanged(int)));
+    connect(Mid3, SIGNAL(valueChanged(int)), this, SLOT(spinsChanged(int)));
+    connect(Mid4, SIGNAL(valueChanged(int)), this, SLOT(spinsChanged(int)));
 
     Right1 = new QSpinBox;
     Right2 = new QSpinBox;
@@ -104,13 +112,17 @@ Widget::Widget(QWidget *parent)
     Right4 = nullptr;
     Right1->setMinimumSize(200,20);
 
-    Right1->setReadOnly(true);
-    Right2->setReadOnly(true);
-    Right3->setReadOnly(true);
+    //Right1->setReadOnly(true);
+    //Right2->setReadOnly(true);
+    //Right3->setReadOnly(true);
 
     Right1->setRange(0, 359);
     Right2->setRange(0, 255);
     Right3->setRange(0, 255);
+
+    connect(Right1, SIGNAL(valueChanged(int)), this, SLOT(spinsChanged(int)));
+    connect(Right2, SIGNAL(valueChanged(int)), this, SLOT(spinsChanged(int)));
+    connect(Right3, SIGNAL(valueChanged(int)), this, SLOT(spinsChanged(int)));
 
     LLabel1 = new QLabel("R:");
     LLabel2 = new QLabel("G:");
@@ -130,7 +142,7 @@ Widget::Widget(QWidget *parent)
     Names_For_LeftLabels("RGB");
 
 
-    backgr->addWidget(GradientLabel, 0,4,1,2);
+    backgr->addWidget(ColorDialog, 0,4,4,2);
     backgr->addWidget(ColorRect, 4,0,1,6);
 
     sliders->addWidget(SliderLabel1,0,0,1,1);
@@ -200,6 +212,7 @@ Widget::Widget(QWidget *parent)
     connect(LeftCB,SIGNAL(currentTextChanged(QString)),this,SLOT(Names_For_LeftLabels(QString)));
     connect(CentralCB,SIGNAL(currentTextChanged(QString)),this,SLOT(Names_For_MidLabels(QString)));
     connect(RightCB,SIGNAL(currentTextChanged(QString)),this,SLOT(Names_For_RightLabels(QString)));
+    connect(ColorDialog, SIGNAL(clicked()), this, SLOT(colorSelection()));
 
     this->setLayout(backgr);
 
@@ -300,7 +313,7 @@ QVector<int> Widget::getValues(space_name value_id)
         Z = 0.019334*Rn + 0.119193*Gn + 0.950227*Bn;
 
         values= {int(X),int(Y),int(Z)};
-    break;
+        break;
     }
 
     case space_name::lab:
@@ -329,7 +342,7 @@ QVector<int> Widget::getValues(space_name value_id)
         B = 200.0 *(XYZ_To_LAB(Y/Yw) - XYZ_To_LAB(Z/Zw));
 
         values= {int(L),int(A), int (B)};
-    break;
+        break;
     }
     }
 
@@ -750,17 +763,17 @@ void Widget::Names_For_RightLabels(QString text)
     }
 }
 
-/************************Sets a new color if the user clicked on the gradient bar**********************/
+/***!DISABLED!**************Sets a new color if the user clicked on the gradient bar**********************/
 void Widget::mousePressEvent(QMouseEvent *e)
 {
-    double mouseX = e->pos().x();
+    /*double mouseX = e->pos().x();
     double mouseY = e->pos().y();
     if(mouseX < GradientLabel->x() || mouseX > GradientLabel->x() + GradientLabel->width()) return;
     if(mouseY < GradientLabel->y() || mouseY > GradientLabel->y() + GradientLabel->height()) return;
 
     QColor temp = grab(QRect(mouseX, mouseY, 1, 1)).toImage().pixelColor(0,0);
     SetColor(space_name::rgb, temp.red(), temp.green(), temp.blue());
-    setSpacesAndLabel();
+    setSpacesAndLabel();*/
 }
 
 
@@ -779,11 +792,11 @@ void Widget::FirstSpinSetRange(QSpinBox* spin, bool hueSpace)
     spin->setMaximum(max);
 }
 
-/***********************Coloring the gradient bar******************************************/
+/***!DISABLED!********Coloring the gradient bar******************************************/
 void Widget::paintEvent(QPaintEvent *event)
 {
     QWidget::paintEvent(event);
-    QPixmap Grad(GradientLabel->width(), GradientLabel->height());
+    /*QPixmap Grad(GradientLabel->width(), GradientLabel->height());
     QPainter paint(&Grad);
     double radius =200;
     QLinearGradient linearGradient(0,0, radius,0);
@@ -798,11 +811,18 @@ void Widget::paintEvent(QPaintEvent *event)
     GradientLabel->setMaximumSize(200,200);
     paint.setBrush(linearGradient);
     paint.drawRect(0,0,GradientLabel->width()-1,GradientLabel->height()-1);
-    GradientLabel->update();
+    GradientLabel->update();*/
 }
 
 
 /***********************Sets a new color*************************************************/
+void Widget::colorSelection()
+{
+    QColor temp = QColorDialog::getColor(*color_converter, this, "Choose your color");
+    SetColor(space_name::rgb, temp.red(), temp.green(), temp.blue(), -1);
+    setSpacesAndLabel();
+}
+
 void Widget::setSpacesAndLabel()
 {
     QVector<int> valuesLeft=getValues(spaces[0]);
@@ -894,7 +914,7 @@ void Widget::setSliders(QVector<int> valuesLeft)
 
 
 /***********************************Works when slider's position was changed****************************************/
-void Widget::slidersMoved()
+void Widget::slidersMoved(int arg)
 {
     if(slider_changed_manual)
     {
@@ -915,20 +935,20 @@ void Widget::slidersMoved()
 }
 
 /*****************Works when values in spinboxes are changed manually. Changes the other values************/
-void Widget::spinsChanged()
+void Widget::spinsChanged(int arg)
 {
     if(spin_changed_manual)
     {
         spin_changed_manual=false;
         return;
     }
-    int val1= Left1->value();
-    int val2= Left2->value();
-    int val3= Left3->value();
-    int val4=-1;
+    int val1 = Left1->value();
+    int val2 = Left2->value();
+    int val3 = Left3->value();
+    int val4 = -1;
     if(Left4 != nullptr)    //if working with CMYK
     {
-        val4=Left4->value();
+        val4 = Left4->value();
     }
 
 
@@ -942,6 +962,5 @@ void Widget::spinsChanged()
 Widget::~Widget()
 {
 }
-
 
 
