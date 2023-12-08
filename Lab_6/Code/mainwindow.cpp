@@ -6,6 +6,8 @@
 
 #include <cmath>
 
+#include <iostream>
+
 
 MainWindow::MainWindow(QMainWindow *parent)
     : QMainWindow(parent)
@@ -26,6 +28,7 @@ MainWindow::MainWindow(QMainWindow *parent)
     //viewport initializing
     ui->viewportWidget->clear();
     viewPtr = new Viewport();
+    viewPtr->updatesEnabled();
     ui->viewportWidget->addTab(viewPtr, "Viewport");
 
     //coordinates issues initializing (defines the (0; 0) position and the scale value)
@@ -56,17 +59,18 @@ Viewport::Viewport(QWidget *parent) : QWidget(parent)
 
     //transform matrix
     transformMatrix = new double*[3];
-    tempMatrix = new double*[3];
+    //tempMatrix = new double*[3];
 
     for(int i = 0; i < 3; ++i)
     {
-        transformMatrix[i] = new double[3] {0};
-        transformMatrix[i][i] = 1;
+        transformMatrix[i] = new double[3];
 
-        tempMatrix[i] = new double[3] {0};
-        tempMatrix[i][i] = 1;
+        //tempMatrix[i] = new double[3] {0};
+        //tempMatrix[i][i] = 1;
     }
 
+    //center point initialization
+    centerPoint.setAll(0, 0, 0);
 
     //basic carcass points initialization
     carcassPoints = new Point3D[22];
@@ -146,10 +150,10 @@ Viewport::~Viewport()
     for(int i = 0; i < 3; ++i)
     {
         delete[] transformMatrix[i];
-        delete[] tempMatrix[i];
+        //delete[] tempMatrix[i];
     }
     delete[] transformMatrix;
-    delete[] tempMatrix;
+    //delete[] tempMatrix;
 
     delete[] carcassPoints;
     delete[] projectionCarcassPoints;
@@ -247,20 +251,35 @@ void MainWindow::processButtonClicked()
             viewPtr->projectionCarcassPoints->getFromPoint3D((viewPtr->carcassPoints[i]));
         }*/
 
-        //double temp1, temp2, temp3;
 
+        viewPtr->centerPoint.setAll((viewPtr->centerPoint).x() + (arg1->text().toFloat()),
+                                    (viewPtr->centerPoint).y() + (arg2->text().toFloat()),
+                                    (viewPtr->centerPoint).z() + (arg3->text().toFloat()));
         for(int i = 0; i < 22; ++i)
         {
-            viewPtr->carcassPoints[i].setAll((viewPtr->carcassPoints[i].x()) + (arg1->text().toFloat()),
-                                             (viewPtr->carcassPoints[i].y()) + (arg2->text().toFloat()),
-                                             (viewPtr->carcassPoints[i].z()) + (arg3->text().toFloat()));
+            viewPtr->carcassPoints[i].setAll((viewPtr->carcassPoints[i]).x() + (arg1->text().toFloat()),
+                                             (viewPtr->carcassPoints[i]).y() + (arg2->text().toFloat()),
+                                             (viewPtr->carcassPoints[i]).z() + (arg3->text().toFloat()));
 
-            viewPtr->projectionCarcassPoints->getFromPoint3D((viewPtr->carcassPoints[i]));
-            //viewPtr->update();
+            viewPtr->projectionCarcassPoints[i].getFromPoint3D(viewPtr->carcassPoints[i]);
+
+            //DEBUG ONLY
+            //std::cout << (viewPtr->projectionCarcassPoints[i]).x() << " " << (viewPtr->projectionCarcassPoints[i]).y() << " ";
         }
+        //viewPtr->update();
+        //return;
     }
     else if(rotate)
     {
+
+        //move to the center to rotate the whole object properly
+        for(int i = 0; i < 22; ++i)
+        {
+            viewPtr->carcassPoints[i].setAll((viewPtr->carcassPoints[i]).x() - viewPtr->centerPoint.x(),
+                                             (viewPtr->carcassPoints[i]).y() - viewPtr->centerPoint.y(),
+                                             (viewPtr->carcassPoints[i]).z() - viewPtr->centerPoint.z());
+        }
+
 
         //rotate around X axis
         for(int i = 0; i < 3; ++i)
@@ -280,6 +299,7 @@ void MainWindow::processButtonClicked()
             viewPtr->carcassPoints[i].transform(viewPtr->transformMatrix);
         }
 
+
         //rotate around Y axis
         for(int i = 0; i < 3; ++i)
         {
@@ -298,6 +318,7 @@ void MainWindow::processButtonClicked()
             viewPtr->carcassPoints[i].transform(viewPtr->transformMatrix);
         }
 
+
         //rotate around Z axis
         for(int i = 0; i < 3; ++i)
         {
@@ -314,8 +335,16 @@ void MainWindow::processButtonClicked()
         for(int i = 0; i < 22; ++i)
         {
             viewPtr->carcassPoints[i].transform(viewPtr->transformMatrix);
-            viewPtr->projectionCarcassPoints->getFromPoint3D((viewPtr->carcassPoints[i]));
-            //viewPtr->update();
+        }
+
+
+        //move back to the true object position
+        for(int i = 0; i < 22; ++i)
+        {
+            viewPtr->carcassPoints[i].setAll((viewPtr->carcassPoints[i]).x() + viewPtr->centerPoint.x(),
+                                             (viewPtr->carcassPoints[i]).y() + viewPtr->centerPoint.y(),
+                                             (viewPtr->carcassPoints[i]).z() + viewPtr->centerPoint.z());
+            viewPtr->projectionCarcassPoints[i].getFromPoint3D((viewPtr->carcassPoints[i]));
         }
     }
     else if(scale)
@@ -328,16 +357,23 @@ void MainWindow::processButtonClicked()
             }
             viewPtr->transformMatrix[i][i] = 1;
         }
-        viewPtr->transformMatrix[0][0] = (arg1->text().toFloat()) / 100.0;
-        viewPtr->transformMatrix[1][1] = (arg2->text().toFloat()) / 100.0;
-        viewPtr->transformMatrix[2][2] = (arg3->text().toFloat()) / 100.0;
+        viewPtr->transformMatrix[0][0] = (arg1->text().toFloat())/* / 100.0*/;
+        viewPtr->transformMatrix[1][1] = (arg2->text().toFloat())/* / 100.0*/;
+        viewPtr->transformMatrix[2][2] = (arg3->text().toFloat())/* / 100.0*/;
         for(int i = 0; i < 22; ++i)
         {
             viewPtr->carcassPoints[i].transform(viewPtr->transformMatrix);
-            viewPtr->projectionCarcassPoints->getFromPoint3D((viewPtr->carcassPoints[i]));
-            //viewPtr->update();
+            viewPtr->projectionCarcassPoints[i].getFromPoint3D((viewPtr->carcassPoints[i]));
         }
     }
+
+    //DEBUG ONLY
+    /*for(int i = 0; i < 22; ++i)
+    {
+        std::cout << viewPtr->projectionCarcassPoints[i].x() << " "
+                  << viewPtr->projectionCarcassPoints[i].y() << " ";
+    }*/
+    //std::cout << "\n";
 
     viewPtr->update();
 }
