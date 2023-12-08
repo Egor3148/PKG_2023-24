@@ -5,7 +5,7 @@
 #include <QMainWindow>
 #include <QDoubleSpinBox>
 
-#include<iostream>
+//#include<iostream>
 
 
 
@@ -78,14 +78,14 @@ public:
         double* tempV = new double[3];
         double temp;
 
-        for(int i = 0; i < 3; ++i)
+        /*for(int i = 0; i < 3; ++i)
         {
             for(int j = 0; j < 3; ++j)
             {
                 std::cout << transformMatrix[i][j] << " ";
             }
             std::cout << "\n";
-        }
+        }*/
 
         for(int i = 0; i < 3; ++i)
         {
@@ -173,8 +173,9 @@ public:
 
     //transformation matrix
     double** transformMatrix;
-    double** tempMatrix;
+    //double** tempMatrix;
 
+    Point3D centerPoint;    //information about the center of the point
     Point3D* carcassPoints;   //basic points to draw lines between them to get the figure
     Point2D* projectionCarcassPoints; //the projections of basic points will be there
 
