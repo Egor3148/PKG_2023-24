@@ -70,7 +70,7 @@ Viewport::Viewport(QWidget *parent) : QWidget(parent)
     }
 
     //center point initialization
-    centerPoint.setAll(0, 0, 0);
+    centerPoint.setAll(0, 0, 11);
 
     //basic carcass points initialization
     carcassPoints = new Point3D[22];
@@ -210,6 +210,10 @@ void MainWindow::movingOptButtonClicked()
     move = true;
     rotate = false;
     scale = false;
+
+    arg1->setValue(0);
+    arg2->setValue(0);
+    arg3->setValue(0);
 }
 
 void MainWindow::rotatingOptButtonClicked()
@@ -217,6 +221,10 @@ void MainWindow::rotatingOptButtonClicked()
     move = false;
     rotate = true;
     scale = false;
+
+    arg1->setValue(0);
+    arg2->setValue(0);
+    arg3->setValue(0);
 }
 
 void MainWindow::scalingOptButtonClicked()
@@ -224,6 +232,10 @@ void MainWindow::scalingOptButtonClicked()
     move = false;
     rotate = false;
     scale = true;
+
+    arg1->setValue(1);
+    arg2->setValue(1);
+    arg3->setValue(1);
 }
 
 
@@ -349,6 +361,15 @@ void MainWindow::processButtonClicked()
     }
     else if(scale)
     {
+        //move to the center to rotate the whole object properly
+        for(int i = 0; i < 22; ++i)
+        {
+            viewPtr->carcassPoints[i].setAll((viewPtr->carcassPoints[i]).x() - viewPtr->centerPoint.x(),
+                                             (viewPtr->carcassPoints[i]).y() - viewPtr->centerPoint.y(),
+                                             (viewPtr->carcassPoints[i]).z() - viewPtr->centerPoint.z());
+        }
+
+
         for(int i = 0; i < 3; ++i)
         {
             for(int j = 0; j < 3; ++j)
@@ -363,6 +384,15 @@ void MainWindow::processButtonClicked()
         for(int i = 0; i < 22; ++i)
         {
             viewPtr->carcassPoints[i].transform(viewPtr->transformMatrix);
+        }
+
+
+        //move back to the true object position
+        for(int i = 0; i < 22; ++i)
+        {
+            viewPtr->carcassPoints[i].setAll((viewPtr->carcassPoints[i]).x() + viewPtr->centerPoint.x(),
+                                             (viewPtr->carcassPoints[i]).y() + viewPtr->centerPoint.y(),
+                                             (viewPtr->carcassPoints[i]).z() + viewPtr->centerPoint.z());
             viewPtr->projectionCarcassPoints[i].getFromPoint3D((viewPtr->carcassPoints[i]));
         }
     }
