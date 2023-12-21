@@ -1,4 +1,3 @@
-
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
@@ -181,7 +180,7 @@ public:
     //--------methods-----
 
     //draws an object
-    void draw(QPainter* painter, double x0, double y0, double scale);
+    void draw(QPainter& painter, double x0, double y0, double scale);
 
     Object3D();
     ~Object3D();
@@ -209,7 +208,7 @@ private:
 
 public:
 
-/*
+    /*
     //transformation matrix
     double** transformMatrix;
     //double** tempMatrix;
