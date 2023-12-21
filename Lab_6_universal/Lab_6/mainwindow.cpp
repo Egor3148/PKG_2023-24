@@ -70,14 +70,39 @@ Object3D::Object3D()
         transformMatrix[i] = new double[3];
     }
 
-    QFile file("test.3dc");
+    /*QFile file("test.3dc");
     //file.open(QIODevice::ReadOnly | QIODevice::Text);
     if(!file.isOpen())
     {
         //QMessageBox::critical("ERROR", "Error while opening the file.\nCheck if the file exists");
         exit(1);
     }
+    QTextStream fin(&file);*/
+
+    QFileDialog* filePtr = new QFileDialog();
+    QString currentFilePath = filePtr->getOpenFileName();
+    if (currentFilePath[currentFilePath.size() - 1] != QChar('c') ||
+        currentFilePath[currentFilePath.size() - 2] != QChar('d') ||
+        currentFilePath[currentFilePath.size() - 3] != QChar('3') ||
+        currentFilePath[currentFilePath.size() - 4] != QChar('.'))
+    {
+        /*(QMessageBox::critical(this, "ERROR", "Wrong file resolution. This program accepts only '.3dc' files.");
+        delete filePtr;
+        ui->statusbar->showMessage("Error while opening the file.");
+        return;*/
+
+        exit(403);
+    }
+    delete filePtr;
+
+    QFile file(currentFilePath);
+    file.open(QIODevice::ReadOnly | QIODevice::Text);
+    if (!file.isOpen())
+    {
+        exit(404);
+    }
     QTextStream fin(&file);
+
 
     double tempX, tempY, tempZ;
 
@@ -99,6 +124,12 @@ Object3D::Object3D()
         projectionCarcassPoints[i].getFromPoint3D(carcassPoints[i]);
     }
 
+    //DEBUG ONLY
+    /*for(int i = 0; i < pointsAmount; ++i)
+    {
+        std::cout << carcassPoints[i].x() << "\t" << carcassPoints[i].y() << "\t" << carcassPoints[i].z() << "\n";
+    }*/
+
     //gets ribs matrix
     ribsMatrix = new int*[pointsAmount];
     for(int i = 0; i < pointsAmount; ++i)
@@ -106,11 +137,21 @@ Object3D::Object3D()
         ribsMatrix[i] = new int[pointsAmount];
         for(int j = 0; j < pointsAmount; ++j)
         {
-            fin << ribsMatrix[i][j];
+            fin >> ribsMatrix[i][j];
         }
     }
 
     file.close();
+
+    //DEBUG ONLY
+    /*for(int i = 0; i < pointsAmount; ++i)
+    {
+        for(int j = 0; j < pointsAmount; ++j)
+        {
+            std::cout << ribsMatrix[i][j] << " ";
+        }
+        std::cout << "\n";
+    }*/
 }
 
 Object3D::~Object3D()
@@ -132,18 +173,18 @@ Object3D::~Object3D()
 }
 
 
-void Object3D::draw(QPainter* painter, double x0, double y0, double scale)
+void Object3D::draw(QPainter& painter, double x0, double y0, double scale)
 {
     for(int i = 0; i < pointsAmount; ++i)
     {
-        for(int j = 0; j < i; ++j)
+        for(int j = 0; j <= i; ++j)
         {
             if(ribsMatrix[i][j] == 1)
             {
-                painter->drawLine(((projectionCarcassPoints[i].x()) * scale) + x0,
-                                  ((projectionCarcassPoints[i].y()) * scale) - y0,
+                painter.drawLine(((projectionCarcassPoints[i].x()) * scale) + x0,
+                                  y0 - ((projectionCarcassPoints[i].y()) * scale),
                                   ((projectionCarcassPoints[j].x()) * scale) + x0,
-                                  ((projectionCarcassPoints[j].y()) * scale) - y0);
+                                  y0 - ((projectionCarcassPoints[j].y()) * scale));
             }
         }
     }
@@ -160,6 +201,8 @@ Viewport::Viewport(QWidget *parent) : QWidget(parent)
     scaleValue = zeroX / 20.0;
 
     modelPtr = new Object3D;
+
+    this->update();
 }
 
 Viewport::~Viewport()
@@ -170,6 +213,10 @@ Viewport::~Viewport()
 void Viewport::paintEvent(QPaintEvent*)
 {
     QPainter painter(this);
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(QBrush(Qt::white));
+    painter.drawRect(0, 0, this->width(), this->height());
+    painter.setPen(Qt::black);
 
     /*for(int i = 0; i < modelPtr->pointsAmount; ++i)
     {
@@ -177,12 +224,15 @@ void Viewport::paintEvent(QPaintEvent*)
         {
             if(modelPtr->ribsMatrix[i][j] == 1)
             {
-                painter.drawLine(modelPtr);
+                painter.drawLine(((modelPtr->projectionCarcassPoints[i].x()) * scaleValue) + zeroX,
+                                  ((modelPtr->projectionCarcassPoints[i].y()) * scaleValue) - zeroY,
+                                  ((modelPtr->projectionCarcassPoints[j].x()) * scaleValue) + zeroX,
+                                  ((modelPtr->projectionCarcassPoints[j].y()) * scaleValue) - zeroY);
             }
         }
     }*/
 
-    modelPtr->draw(&painter, zeroX, zeroY, scaleValue);
+    modelPtr->draw(painter, zeroX, zeroY, scaleValue);
 }
 
 
@@ -249,13 +299,13 @@ void MainWindow::processButtonClicked()
 
 
         viewPtr->modelPtr->centerPoint.setAll((viewPtr->modelPtr->centerPoint).x() + (arg1->text().toFloat()),
-                                    (viewPtr->modelPtr->centerPoint).y() + (arg2->text().toFloat()),
-                                    (viewPtr->modelPtr->centerPoint).z() + (arg3->text().toFloat()));
+                                              (viewPtr->modelPtr->centerPoint).y() + (arg2->text().toFloat()),
+                                              (viewPtr->modelPtr->centerPoint).z() + (arg3->text().toFloat()));
         for(int i = 0; i < viewPtr->modelPtr->pointsAmount; ++i)
         {
             viewPtr->modelPtr->carcassPoints[i].setAll((viewPtr->modelPtr->carcassPoints[i]).x() + (arg1->text().toFloat()),
-                                             (viewPtr->modelPtr->carcassPoints[i]).y() + (arg2->text().toFloat()),
-                                             (viewPtr->modelPtr->carcassPoints[i]).z() + (arg3->text().toFloat()));
+                                                       (viewPtr->modelPtr->carcassPoints[i]).y() + (arg2->text().toFloat()),
+                                                       (viewPtr->modelPtr->carcassPoints[i]).z() + (arg3->text().toFloat()));
 
             viewPtr->modelPtr->projectionCarcassPoints[i].getFromPoint3D(viewPtr->modelPtr->carcassPoints[i]);
 
@@ -272,8 +322,8 @@ void MainWindow::processButtonClicked()
         for(int i = 0; i < viewPtr->modelPtr->pointsAmount; ++i)
         {
             viewPtr->modelPtr->carcassPoints[i].setAll((viewPtr->modelPtr->carcassPoints[i]).x() - viewPtr->modelPtr->centerPoint.x(),
-                                                        (viewPtr->modelPtr->carcassPoints[i]).y() - viewPtr->modelPtr->centerPoint.y(),
-                                                        (viewPtr->modelPtr->carcassPoints[i]).z() - viewPtr->modelPtr->centerPoint.z());
+                                                       (viewPtr->modelPtr->carcassPoints[i]).y() - viewPtr->modelPtr->centerPoint.y(),
+                                                       (viewPtr->modelPtr->carcassPoints[i]).z() - viewPtr->modelPtr->centerPoint.z());
         }
 
 
@@ -338,8 +388,8 @@ void MainWindow::processButtonClicked()
         for(int i = 0; i < viewPtr->modelPtr->pointsAmount; ++i)
         {
             viewPtr->modelPtr->carcassPoints[i].setAll((viewPtr->modelPtr->carcassPoints[i]).x() + viewPtr->modelPtr->centerPoint.x(),
-                                             (viewPtr->modelPtr->carcassPoints[i]).y() + viewPtr->modelPtr->centerPoint.y(),
-                                             (viewPtr->modelPtr->carcassPoints[i]).z() + viewPtr->modelPtr->centerPoint.z());
+                                                       (viewPtr->modelPtr->carcassPoints[i]).y() + viewPtr->modelPtr->centerPoint.y(),
+                                                       (viewPtr->modelPtr->carcassPoints[i]).z() + viewPtr->modelPtr->centerPoint.z());
             viewPtr->modelPtr->projectionCarcassPoints[i].getFromPoint3D((viewPtr->modelPtr->carcassPoints[i]));
         }
     }
@@ -349,8 +399,8 @@ void MainWindow::processButtonClicked()
         for(int i = 0; i < viewPtr->modelPtr->pointsAmount; ++i)
         {
             viewPtr->modelPtr->carcassPoints[i].setAll((viewPtr->modelPtr->carcassPoints[i]).x() - viewPtr->modelPtr->centerPoint.x(),
-                                             (viewPtr->modelPtr->carcassPoints[i]).y() - viewPtr->modelPtr->centerPoint.y(),
-                                             (viewPtr->modelPtr->carcassPoints[i]).z() - viewPtr->modelPtr->centerPoint.z());
+                                                       (viewPtr->modelPtr->carcassPoints[i]).y() - viewPtr->modelPtr->centerPoint.y(),
+                                                       (viewPtr->modelPtr->carcassPoints[i]).z() - viewPtr->modelPtr->centerPoint.z());
         }
 
 
@@ -375,8 +425,8 @@ void MainWindow::processButtonClicked()
         for(int i = 0; i < viewPtr->modelPtr->pointsAmount; ++i)
         {
             viewPtr->modelPtr->carcassPoints[i].setAll((viewPtr->modelPtr->carcassPoints[i]).x() + viewPtr->modelPtr->centerPoint.x(),
-                                             (viewPtr->modelPtr->carcassPoints[i]).y() + viewPtr->modelPtr->centerPoint.y(),
-                                             (viewPtr->modelPtr->carcassPoints[i]).z() + viewPtr->modelPtr->centerPoint.z());
+                                                       (viewPtr->modelPtr->carcassPoints[i]).y() + viewPtr->modelPtr->centerPoint.y(),
+                                                       (viewPtr->modelPtr->carcassPoints[i]).z() + viewPtr->modelPtr->centerPoint.z());
             viewPtr->modelPtr->projectionCarcassPoints[i].getFromPoint3D((viewPtr->modelPtr->carcassPoints[i]));
         }
     }
